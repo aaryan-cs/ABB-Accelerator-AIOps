@@ -1,0 +1,83 @@
+/* Grafana-like dark theme (colors approximate Grafana's default dark palette). */
+:root {
+  --bg: #111217;
+  --panel: #181b1f;
+  --panel-hover: #1f2127;
+  --border: rgba(204, 204, 220, 0.12);
+  --text: #ccccdc;
+  --text-weak: rgba(204, 204, 220, 0.65);
+  --text-faint: rgba(204, 204, 220, 0.4);
+  --blue: #6e9fff;
+  --green: #73bf69;
+  --red: #f2495c;
+  --orange: #ff9830;
+  --purple: #b877d9;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, Roboto, -apple-system, "Segoe UI", sans-serif;
+  font-size: 13px;
+}
+
+a { color: var(--blue); }
+
+/* top navigation bar */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 48px;
+  padding: 0 16px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.topbar .title { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.topbar .meta { display: flex; align-items: center; gap: 16px; color: var(--text-weak); font-size: 12px; }
+
+/* 12-column panel grid, like a Grafana dashboard */
+.wrap { max-width: 1280px; margin: 0 auto; padding: 12px; display: grid; gap: 10px; grid-template-columns: repeat(12, 1fr); }
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.panel > .head {
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.panel > .head .sub { font-weight: 400; color: var(--text-weak); font-size: 11px; }
+.panel > .body { padding: 10px; flex: 1; min-height: 0; }
+
+/* Grafana-style stat tile */
+.stat { align-items: center; justify-content: center; text-align: center; padding: 16px 8px; }
+.stat .v { font-size: 30px; font-weight: 600; line-height: 1.1; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stat .l { font-size: 11px; color: var(--text-weak); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 6px; }
+
+.pill { display: inline-flex; align-items: center; gap: 6px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.chip { padding: 2px 8px; border-radius: 10px; font-size: 11px; background: rgba(110, 159, 255, 0.15); color: var(--blue); border: 1px solid rgba(110, 159, 255, 0.3); }
+
+.btn { background: #22252b; color: var(--text); border: 1px solid var(--border); border-radius: 3px; padding: 6px 12px; font-size: 12px; cursor: pointer; }
+.btn:hover { background: var(--panel-hover); }
+.btn-primary { background: #3d71d9; border-color: #3d71d9; color: #fff; }
+.btn-primary:hover { background: #4c80e8; }
+
+.row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--border); }
+.row:last-child { border-bottom: none; }

@@ -1,0 +1,46 @@
+# ── Python ──
+__pycache__/
+*.pyc
+.pytest_cache/
+pytest-cache-files-*/
+.venv/
+venv/
+abb-env/
+
+# ── Node ──
+node_modules/
+
+# ── Go: compiled binaries are built by each Dockerfile / `go build` — never commit ──
+/aggregator/aggregator
+/workloads/critical-control-relay/ccr
+/workloads/dcim-bridge/dcim-bridge
+/workloads/notify-gateway/notify-gateway
+/workloads/plc-gateway/plc-gateway
+/workloads/safety-interlock/safety-interlock
+
+# ── build / packaging artifacts ──
+bin/
+dist/
+*.tar
+*.tgz
+*.qcow2
+
+# ── Syncthing working-copy metadata ──
+.stfolder/
+.stignore
+
+# ── editor / OS ──
+.obsidian/
+.DS_Store
+Thumbs.db
+*.swp
+
+# ── project: large derived deck images, retired code, local logs ──
+ppt_pages_images/
+old.version/
+*.log
+skn_context.txt
+
+# ── dashboard build output (Next.js); deps/output are rebuilt, never committed ──
+dashboard/.next/
+dashboard/out/

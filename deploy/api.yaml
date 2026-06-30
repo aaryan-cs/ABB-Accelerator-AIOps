@@ -1,0 +1,45 @@
+# L4 API gateway (P6) — frontend-agnostic REST over L2/L3. Deployed to ns aiops.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: aiops
+  labels: { app: api, tier: aiops }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: api } }
+  template:
+    metadata:
+      labels: { app: api, tier: aiops }
+    spec:
+      containers:
+        - name: api
+          image: skn/api:v0.1
+          imagePullPolicy: IfNotPresent
+          ports: [{ containerPort: 8088 }]
+          env:
+            - { name: ENGINE_URL,     value: "http://correlation-engine.aiops.svc:9100" }
+            - { name: AGGREGATOR_URL, value: "http://aggregator.aiops.svc:9000" }
+            - { name: COOLING_URL,    value: "http://cooling-monitor.factory-data.svc:8080" }
+            - { name: OLLAMA_MODEL,   value: "gemma4:e4b" }
+            # Ollama runs on the host (node IP; must listen on 0.0.0.0). Baked here so `kubectl apply`
+            # no longer wipes it. Change to your node IP if it differs; empty -> template fallback.
+            - { name: OLLAMA_HOST,    value: "http://192.168.1.239:11434" }
+            - { name: TZ,             value: "Asia/Kolkata" }
+          readinessProbe:
+            httpGet: { path: /healthz, port: 8088 }
+            initialDelaySeconds: 3
+          resources:
+            requests: { cpu: 50m,  memory: 96Mi }
+            limits:   { cpu: 250m, memory: 192Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: aiops
+  labels: { app: api }
+spec:
+  type: NodePort
+  selector: { app: api }
+  ports: [{ name: http, port: 8088, targetPort: 8088, nodePort: 30088 }]

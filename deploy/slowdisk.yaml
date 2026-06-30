@@ -1,0 +1,47 @@
+# Static local PVs pinning the factory's S1-contention storage to the dedicated /dev/sdb HDD (D-014, LOG-047).
+# No dynamic provisioner, no k3s-addon edit, no k3s restart, observability untouched.
+# Node prereq:  sudo mkfs.ext4 -L slowdisk /dev/sdb && sudo mount /mnt/slowdisk && sudo mkdir -p /mnt/slowdisk/{tsdb,shared-logs}
+# Apply (fills the node name in):
+#   NODE=$(kubectl get node -o jsonpath='{.items[0].metadata.labels.kubernetes\.io/hostname}')
+#   sed "s/<NODE_NAME>/$NODE/g" deploy/slowdisk.yaml | kubectl apply -f -
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: slowdisk
+provisioner: kubernetes.io/no-provisioner   # static binding only; no dynamic provisioning
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Retain
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: tsdb-pv-slowdisk
+spec:
+  capacity: { storage: 64Gi }
+  accessModes: [ReadWriteOnce]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: slowdisk
+  local:
+    path: /mnt/slowdisk/tsdb
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - { key: kubernetes.io/hostname, operator: In, values: ["<NODE_NAME>"] }
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: shared-logs-pv-slowdisk
+spec:
+  capacity: { storage: 5Gi }
+  accessModes: [ReadWriteOnce]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: slowdisk
+  local:
+    path: /mnt/slowdisk/shared-logs
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - { key: kubernetes.io/hostname, operator: In, values: ["<NODE_NAME>"] }

@@ -1,0 +1,16 @@
+# Caretta - eBPF service-flow map. Emits caretta_links_observed_total (who-talks-to-whom + bytes),
+# which should redraw plane-1 of the pod mesh with zero config. Bundled VictoriaMetrics + Grafana OFF
+# (our Prometheus scrapes it via the prometheus.io/scrape annotation -> job 'ebpf-exporters').
+# CONFIRM AT INSTALL: the metrics port (prometheus.io/port below) against the chart default, and that
+# the eBPF CO-RE program loads on kernel 7.0 (LOG-020 watch-item; Otterize network-mapper is the fallback).
+victoria-metrics-single:
+  enabled: false
+grafana:
+  enabled: false
+tolerations:
+  - operator: Exists            # run the eBPF agent on every node
+config:
+  pollIntervalSeconds: 5
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "7117"    # Caretta metrics port - verify vs the chart's default and adjust if scrape is empty

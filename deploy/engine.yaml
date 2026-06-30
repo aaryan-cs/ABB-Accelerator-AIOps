@@ -1,0 +1,69 @@
+# L3 correlation engine (P4). Pulls the aggregator's /window + /events, runs the
+# deterministic engine, serves the CausalGraph at /graph. Image skn/correlation-engine:v0.1.
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: engine-memory-pvc
+  namespace: aiops
+  annotations:
+    helm.sh/resource-policy: keep
+  labels: { app: correlation-engine, tier: aiops }
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources: { requests: { storage: 1Gi } }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: correlation-engine
+  namespace: aiops
+  labels: { app: correlation-engine, tier: aiops }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: correlation-engine } }
+  template:
+    metadata:
+      labels: { app: correlation-engine, tier: aiops }
+    spec:
+      securityContext:
+        fsGroup: 65534
+      containers:
+        - name: engine
+          image: skn/correlation-engine:v0.1
+          imagePullPolicy: IfNotPresent
+          ports: [{ containerPort: 9100 }]
+          env:
+            - { name: WINDOW_URL, value: "http://aggregator.aiops.svc.cluster.local.:9000/window" }   # FQDN (trailing dot) skips the DNS search list -> immune to a Tailscale MagicDNS leak
+            - { name: EVENTS_URL, value: "http://aggregator.aiops.svc.cluster.local.:9000/events" }
+            - { name: ENGINE_SIGNAL, value: "psi_io" }
+            - { name: MEMORY_DB, value: "/var/lib/skn/memory/l3-memory.db" }
+            - { name: EDGE_ALPHA, value: "0.4" }
+            - { name: EDGE_DECAY, value: "0.1" }
+            - { name: EDGE_SHOW, value: "0.6" }
+            - { name: EDGE_HIDE, value: "0.25" }
+            - { name: DEV_K,     value: "4" }                 # deviation-gate sensitivity; 4 keeps idle green under background HDD noise
+            - { name: TZ,        value: "Asia/Kolkata" }
+          volumeMounts:
+            - { name: memory, mountPath: /var/lib/skn/memory }
+          readinessProbe:
+            httpGet: { path: /healthz, port: 9100 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 250m, memory: 384Mi }
+            limits:   { cpu: "1",  memory: 512Mi }
+      volumes:
+        - name: memory
+          persistentVolumeClaim: { claimName: engine-memory-pvc }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: correlation-engine
+  namespace: aiops
+  labels: { app: correlation-engine }
+spec:
+  selector: { app: correlation-engine }
+  ports: [{ name: http, port: 9100, targetPort: 9100 }]

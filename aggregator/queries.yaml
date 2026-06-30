@@ -1,0 +1,22 @@
+# L2 query pack v0 - PromQL per signal (MASTER_PLAN Appendix A). ConfigMap-mounted in-cluster.
+interval_s: 5
+window_min: 15
+queries:
+  cpu:          rate(container_cpu_usage_seconds_total{namespace=~"factory-.*",container!=""}[30s])
+  cpu_throttle: rate(container_cpu_cfs_throttled_periods_total{namespace=~"factory-.*"}[1m]) / rate(container_cpu_cfs_periods_total{namespace=~"factory-.*"}[1m])
+  mem:          container_memory_working_set_bytes{namespace=~"factory-.*",container!=""}
+  net_rx:       rate(container_network_receive_bytes_total{namespace=~"factory-.*"}[30s])
+  net_tx:       rate(container_network_transmit_bytes_total{namespace=~"factory-.*"}[30s])
+  pvc_capacity: kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes
+  disk_io:      rate(node_disk_io_time_seconds_total[30s])
+  psi_cpu:      sum by (namespace, pod) (rate(container_pressure_cpu_stalled_seconds_total{namespace=~"factory-.*"}[30s]))
+  psi_mem:      sum by (namespace, pod) (rate(container_pressure_memory_stalled_seconds_total{namespace=~"factory-.*"}[30s]))
+  psi_io:       sum by (namespace, pod) (rate(container_pressure_io_stalled_seconds_total{namespace=~"factory-.*"}[30s]))
+  io_write:     sum by (namespace, pod) (rate(container_fs_writes_bytes_total{namespace=~"factory-.*"}[30s]))  # per-pod disk WRITE throughput = the source/aggressor signal (psi_io sees only stallers/victims)
+  restarts:     rate(kube_pod_container_status_restarts_total{namespace=~"factory-.*"}[5m])
+  latency_p95:  histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket{k8s_pod_name=~"critical-control-relay.*"}[1m])))  # OBI/eBPF RED, NOT the CCR app histogram (D-004 fix, LOG-027). Needs OBI (P2 step 4); confirm label at install. Was ccr_actuation_seconds_bucket = ground-truth leak.
+thresholds:
+  cpu_util: 0.80
+  pvc_capacity: 0.90
+  psi_some_avg: 0.15
+  latency_p95_s: 0.10

@@ -1,0 +1,418 @@
+﻿SiliconKnights
+Theme 2:
+Beyond monitoring: AI agents for real-time pod 
+resource discovery and dependency mapping
+
+Team Members:
+Soumyadip Das
+Shivam Kumar
+B Kishan
+Aaryan Shyam Pillai
+
+
+
+
+
+
+03 Why existing tools fall short
+
+Platform Cloud Manual 
+Dependency Configuration Edge Ready Resource 
+
+Correlation
+Dynatrace Yes Partial No Limited
+Datadog Yes Partial No Limited
+Istio / Linkerd No Automatic Heavy Network-only
+Prometheus + 
+Grafana Only No N/A Yes None
+(Our Solution) No No Yes Multi-resource
+
+Existing limitations
+• Designed primarily for large cloud-native clusters
+• Focused on communication visibility rather than causal resource behavior
+• High deployment overhead in constrained edge environments
+• No automated tracing of cascading failures
+
+ABB 
+Accelerator SiliconKnights 3
+
+
+
+04 Core Insight
+
+Analysis of resource behavior reveals hidden dependencies, identifying:
+• infrastructure metrics
+• communication paths
+• isolated anomalies
+However, what they cannot identify are:
+• storage contention cascades
+• delayed cross-pod interference
+• indirect resource propagation
+• causal failure chains
+
+Our solution infers dependency relationships directly from lagged resource behavior, using time-series 
+correlation analysis.
+
+ABB 
+Accelerator SiliconKnights 4
+
+
+
+05 System Architecture
+Layer-by-Layer Architecture
+
+Industrial Workload Layer MQTT Broker TimescaleDB Why simulate the factory floor?
+L0 Simulated industrial Cannot demonstrate an observability tool without an application to observe. Each 
+
+microservices CPU Anomaly Det. Critical Control pod targets a distinct resource bottleneck; making failure patterns identifiable, 
+Relay reproducible, and attributable.
+
+Telemetry Collection Prometheus Loki + Promtail Why eBPF over code injection?
+L1 Lightweight Kubernetes eBPF discovers inter-pod network dependencies at kernel level; without modifying 
+
+observability kube-state-metrics Pixie/Cilium eBPF L0 applications, a critical feature for air-gapped and secure industrial setups.
+
+Aggregation & Event Bus Scrape polling JSON event Why a normalization layer?
+L2 generation Raw Prometheus scrape text fed directly to an LLM will not process. L2 is an 
+
+Normalization and structured 
+event abstraction Metric reduction architectural requirement; converting noisy distributed telemetry into structured, 
+
+Threshold anomaly 
+extraction correlation-ready JSON.
+
+Correlation & AI Engine Resource analysis Topology mapping Why local AI agents?
+L3 Splitting inference into specialized agents keeps each focused on one task, 
+
+Localized analysis pipeline Dependency NLP insight dramatically improving accuracy. Local Ollama deployment ensures the air-gap.
+inference generation
+
+Presentation Layer Next.js dashboard WebSocket Why Go backend + Next.js frontend?
+L4 telemetry Handles high-throughput WebSocket connections and REST calls to the AI 
+
+Real-time operational interface Dependency graph Live incident container with minimal overhead. React Flow renders live dependency graphs; 
+viz timeline Recharts renders CPU/PVC time-series in real time.
+
+ABB 
+Accelerator SiliconKnights 5
+
+
+
+06 L0: Industrial Workload Layer
+Industrial Simulation Environment
+
+MQTT Broker Chosen to saturate inter-pod network Inferred Dependency Graph
+bandwidth — exposes propagation 
+
+NETWORK-HEAVY paths to dependent services.
+
+CPU Anomaly Detector Chosen to spike CPU utilization —
+triggers resource starvation cascades 
+
+CPU-HEAVY detectable by L1 agents.
+CPU 
+
+Anomaly
+TimescaleDB Chosen to generate PVC I/O contention:
+
+STORAGE-HEAVY stresses storage scheduler and exposes 
+latency chains.
+
+Critical Control Relay Chosen as the terminal impact node:
+LATENCY-SENSITIVE any upstream failure manifests here as 
+
+actuation delay.
+
+What this architecture does:
+burst CPU PVC contention storage latency network cascade pod interference
+
+Strong Dependency Weak/Indirect Node Size: Causal Influence
+
+Generates realistic failure conditions for dependency 
+analysis.
+
+ABB 
+Accelerator SiliconKnights 6
+
+
+
+07 L1 & L2: Telemetry Collection & Aggregation Bus
+Telemetry Collection Pipeline
+
+Prometheus scrape Loki + Promtail forward eBPF Tracing normalize Aggregation Engine
+Resource metrics Log aggregation Kernel-level netvis Normalization layer
+
+CPU utilization Container logs Inter-pod comms 5s polling intervals
+per-pod & node DaemonSet via Promtail kernel-level capture Prometheus + Loki
+
+Memory pressure Error extraction Packet behavior Threshold detection
+RSS + working set regex + level filters retransmit + drop rate CPU >80%, PVC >90%
+
+PVC usage Log aggregation Dependency discovery Event abstraction
+capacity + I/O per-namespace streams who talks to whom structured JSON output
+
+Node utilization Anomaly signals Traffic propagation Correlation-ready
+allocatable vs used crash / OOM / timeout blast radius tracing normalized schema
+
+Scrape interval of 15s; meaning no I/O No code changes to L0 pods; required for Go container, in-cluster. Outputs schema-
+storms Push-based log shipping air-gapped industrial environments. stable JSON every 5s.
+
+Why normalization matters
+Raw Prometheus scrape text fed directly to an LLM will hallucinate or crash — L2 normalization is a hard architectural requirement, not an optimization.
+The aggregation engine polls Prometheus and Loki every 5 seconds, applies threshold rules (CPU >80%, PVC >90%), and emits clean JSON events. This structured 
+output is what makes downstream AI correlation reliable.
+
+ABB 
+Accelerator SiliconKnights 7
+
+
+
+08 L3: Correlation & Dependency Engine
+Resource analysis over an established dependency topology
+
+Time-Lag Correlation Signal Ingestion & Correlation Calc
+Pairwise r-value across lag windows — established 
+topology edges
+
+01 Pull normalized JSON
+1 Aggregation engine emits 5s event bundles — CPU, 
+
+MEM, NET, PVC, I/O per pod.
+
+Peak at 30s 02 Construct signal vectors
+probable dependency Each pod becomes a time-series matrix. Missing 
+
+samples interpolated linearly.
+0.75 03 Pairwise lag correlation
+
+Pearson r computed across all pod pairs at lag 
+windows 0s, 15s, 30s, 60s, 120s.
+
+04 Weight assignment
+Peak r-value and its lag written as edge weight 
+onto the known eBPF topology.
+
+0.5
+
+Live telemetry — Prometheus + kube-state-metrics, 5s intervals
+Root Cause Ranking + NLP Suggestion
+
+Signal Matrix Score upstream nodes
+Peak intensity per pod per dimension 05 Nodes with highest outbound r-values and 
+
+shortest lag windows ranked as probable root 
+CPU MEM NET PVC I/O causes.
+
+0.25 Blast radius mapping
+MQTT 48% 36% 92% 7% 19% 06 Propagation chain traced via weighted edges:
+
+identifying indirect and hidden downstream effects.
+CPUAD 91% 81% 10% 19% 27% NLP insight generation
+
+07 Lead Orchestrator passes ranked graph to NLP 
+TSDB 28% 70% 14% 91% 90% agent, which translates findings into plain English.
+
+0
+0s 15s 30s 60s 120s
+
+NLP Output
+VibML->CCR MQTT->CCR TSDB->CCR
+
+CCR 58% 51% 57% 72% 48% "CPU anomaly spike (t-30s) is the probable root cause of CCR 
+latency degradation. TSDB PVC saturation contributing via 
+
+Delayed peak = propagation lag storage contention; causing 60s propagation lag."
+
+ABB 
+Accelerator SiliconKnights 8
+
+
+
+09 L3: Correlation & Multi AI Engine
+Specialized agents for real-time resource correlation and dependency inference
+
+ingest correlate infer synthesize
+
+Resource Agent Log Detective Agent Network Topology Agent Lead Orchestrator NLP Agent
+Infrastructure metrics Log intelligence Kernel-level dependency mapping Correlation engine Human-readable insight generation
+
+CPU utilization trends OOM / crash extraction Inter-pod tracing Aggregates agent outputs Converts graph to explanations
+
+Memory pressure analysis Timeout correlation Packet retransmission analysis Cross-resource dependency Summarizes cascading failures
+ranking
+
+PVC saturation tracking Namespace-level aggregation Dependency graph generation Root-cause probability scoring Generates remediation insights
+
+Burst workload detection Error timeline alignment Blast-radius propagation LangChain workflow Produces ranked diagnostics
+orchestration
+
+LSTM-based temporal anomaly detection Regex + semantic filtering pipeline eBPF-based communication tracing Structured causal inference pipeline Plain-English operational intelligence
+
+Why multi-agent decomposition matters
+
+Single monolithic LLM pipelines fail under high-volume telemetry streams. The multi-agent architecture isolates resource analysis, log intelligence, network tracing, and causal reasoning into specialized inference layers. 
+This reduces context overload, improves edge inference speed, and enables reliable root-cause ranking in air-gapped industrial environments.
+
+The entire inference pipeline runs locally using Ollama with Llama 3 8B or Phi-3. No cloud APIs or external services are used at any stage of processing. Ensures complete offline operation for secure and air-gapped 
+environments. Reduces latency while maintaining data privacy and deployment independence.
+
+ABB
+SiliconKnights 9
+
+Accelerator
+
+
+
+10 SCENARIO 01 PVC I/O Cascade
+Storage contention propagation — detected without manual topology configuration
+
+The Situation Propagation Chain Engine Analysis
+At t=0, the Cooling Monitor begins a large thermal Inferred from lag correlation — 5s resolution Signal ingestion + correlation output for this scenario
+log flush to shared PVC storage. No alert has fired —
+all pods report healthy. I/O climbs to 94%. The Cooling Monitor r=0.88 CoolMon →DCIM
+system is watching. lag 5s Dependency strength: HIGH
+
+I/O: 94% Sequential disk read flush
+System telemetry at t=0  — I/O storm detected
+
+r=0.74 DCIM →AlertDisp
+I/O contention;  lag ~0s lag 15s Dependency strength: HIGH
+
+Shared PVC Volume r=0.61 AlertDisp →CCR
+PVC latency +340ms Write queue lag 30s Dependency strength: MED
+
+saturation
+r=0.52
+
+write latency;  lag 5s CoolMon →CCR
+lag 45s Dependency strength: MED
+
+DCIM Bridge
+Write deg. 71% Telemetry write stall System Output
+
+log backpressure;  lag 15s Storage 
+✓ contention Dependency 
+
+✓
+Alert Dispatcher detected chain inferred
+
+Log delay +8s Log queue backpressure Root cause Mitigation 
+✓ isolated ✓ recommendatio
+
+Key insight pod restart;  lag 30s upstream n
+
+Storage contention identified without service Critical Relay
+mesh injection, predefined rules, or manual NLP Agent
+
+latency 
+topology setup. Response +420ms Actuation 
+
+breach "cooling-monitor I/O spike is the probable root cause. 
+DCIM Bridge write degradation follows with 5s lag. 
+Recommend PVC QoS throttling on cooling-monitor."
+
+ABB 
+Accelerator SiliconKnights 10
+
+
+
+11 Risk Analysis
+01 Correlation False Positives
+
+Risk: High Pearson r values between unrelated pods sharing periodic background activity.
+
+✓ Mitigation: Require high r across multiple independent lag windows + eBPF network confirmation before inferring strong 
+dependencies.
+
+02 LLM Hallucination on Edge Hardware
+Risk: Quantized local models (Phi-3) can produce incorrect summaries given malformed input.
+
+✓ Mitigation: L2 normalization ensures the model only receives clean structured JSON — never raw Prometheus text.
+
+03 eBPF Kernel Compatibility
+Risk: eBPF requires specific kernel versions; may be unavailable on some edge K3s distributions.
+
+✓ Mitigation: Graceful degradation to network-policy-based topology inference with reduced edge confidence scores.
+
+04 Single-Node Resource Contention
+Risk: Running Prometheus, Loki, eBPF, Go aggregator, and LLM on the same node as workloads.
+
+✓ Mitigation: All observability components in dedicated low-priority namespace with strict CPU/MEM limits; 15s scrape + 5s 
+polling tuned for minimum overhead.
+
+ABB 
+Accelerator SiliconKnights 11
+
+
+
+12 Implementation Plan
+PHASE 01 PHASE 02 PHASE 04
+
+PHASE 03
+
+Foundation Intelligence AI Integration Dashboard & Demo
+
+• Deploy K3s cluster • Build L2 Go • Integrate LangChain • Build Next.js frontend + Go 
+locally aggregation container multi-agent pipeline with WebSocket backend
+
+local Ollama
+• Stand up L0 simulation • Implement lag • Wire all layers end-to-end 
+
+pods (MQTT, CPUAD, correlation engine • Deploy Llama 3 8B or Phi- (L0 → L1 → L2 → L3 → L4)
+TSDB, CCR) (Python, NumPy/SciPy) 3 (air-gap preserved)
+
+• Configure Prometheus, • Record live demo of PVC 
+Loki, Promtail, eBPF via • Validate dependency • Tune agent prompts for cascade with real-time 
+Helm charts inference on known reliability on structured detection
+
+synthetic failure JSON input
+• Validate raw telemetry scenarios • Final prototype: < 30s 
+
+on all 5 signal • Test NLP output quality detection, NLP summary, 
+dimensions • Confirm root cause across multiple incident air-gapped
+
+ranking before any AI types
+integration
+
+ABB 
+Accelerator SiliconKnights 11
+
+
+
+13 Expected Outcome
+What Round 2 Will Demonstrate Prototype Capabilities
+
+1. Trigger a live PVC I/O cascade on the K3s cluster Fully Air-Gapped
+No cloud calls. Local Ollama + Llama 3. Works 
+
+All pods report healthy — no alert has fired offline.
+2. System detects I/O storm within seconds
+
+Cooling Monitor flagged at 94% I/O — 5 signal 
+dimensions tracked Zero-Config Discovery
+
+eBPF infers topology without modifying 
+3. 5-hop propagation chain traced automatically workloads.
+
+CoolMon → DCIM → AlertDisp → CCR — with lag at 
+each hop
+
+Multi-Resource Cascade
+4. Plain-English NLP summary generated locally Storage → App → Log → Control chains 
+
+detected.
+"cooling-monitor I/O spike is the probable root 
+
+cause..."
+5. Live dependency graph updates in real time on < 30s Detection
+dashboard From I/O storm trigger to NLP root cause output.
+
+React Flow renders causal graph; Recharts shows               
+time-series
+
+Live Dashboard
+WebSocket-driven React Flow graph updates in 
+real time.
+
+ABB 
+Accelerator SiliconKnights 13
